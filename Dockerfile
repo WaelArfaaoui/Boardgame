@@ -1,15 +1,21 @@
-# Build stage
-FROM maven:3.8.7-openjdk-18 AS build
+# First stage: Build the application
+FROM maven:3.8.1-openjdk-11 AS build
 WORKDIR /build
+
+# Copy the pom.xml and the source code
 COPY pom.xml .
-RUN mvn dependency:go-offline
 COPY src ./src
+
+# Build the application
 RUN mvn clean package -DskipTests
 
-# Runtime stage
-FROM amazoncorretto:17
+# Second stage: Create the runtime image
+FROM adoptopenjdk/openjdk11
+WORKDIR /usr/src/app
+EXPOSE 8080
 
-WORKDIR /app
-COPY --from=build /build/target/database_service_project-*.jar /app/
+# Copy the built JAR from the first stage
+COPY --from=build /build/target/*.jar app.jar
 
-EXPOSE 8088
+# Run the application
+CMD ["java", "-jar", "app.jar"]
